@@ -1,0 +1,102 @@
+version: "3.8"
+
+# Docker compose file to start some important development services in the host's network.
+# Starts the following services:
+# postgres, pgadmin, mongo, Redis, mongo-express.
+
+# Start the containers using 'docker-compose up -d --build'.
+# Get the logs using: 'docker-compose logs -f'
+# Stop the containers using 'docker-compose down'
+# Or if you want to delete all data associated with the containers use 'docker-compose down -v'
+
+## Important environment variables to setup
+# - POSTGRES_DB: Name of the postgres server to create. (Defaults to 'postgres')
+# - POSTGRES_USER: Username to use to connect to the postgres server. (Defaults to 'postgres')
+# - POSTGRES_PASSWORD: Password to use to connect to the postgres server. (*)
+# - POSTGRES_FWD_PORT: Port to forward to the Postgres server. (Defaults to '5432')
+# - PGADMIN_DEFAULT_EMAIL: Email to use to connect to pgadmin. (*)
+# - PGADMIN_DEFAULT_PASSWORD: Password to use to connecto to pgadmin. (*)
+# - PGADMIN_FWD_PORT: Port to forward to pgadmin. (Defaults to '64503')
+# - MONGODB_USERNAME: Username to use to connect to the mongodb server. (Defaults to 'mongo')
+# - MONGODB_PASSWORD: Password to use to connect to the mongodb server. (*)
+# - MONGODB_FWD_PORT: Port to forward to the mongodb server. (Defaults to '27017')
+# - REDIS_FWD_PORT: Port to forward to redis. (Defaults to '6379')
+# - MONGOEXPRESS_ADMIN_USERNAME: Username to use to connect to mongo-express (Defaults to 'admin')
+# - MONGOEXPRESS_ADMIN_PASSWORD: Password to use to connect to mongo-express (*)
+# - MONGOEXPRESS_FWD_PORT: Port to forward to mongo-express. (Defaults to '8081')
+## Not so important environment variables::
+# - DOCKER_RESTART_POLICY: always|unless-stopped (default)| ...
+
+
+services:
+    postgres:
+        image: postgres
+        env_file:
+            - ./.env
+        environment:
+            - POSTGRES_USER=${POSTGRES_USER:-postgres}
+            - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+        volumes:
+            - postgres_data:/var/lib/postgresql/data/
+        ports:
+            - ${POSTGRES_FWD_PORT:-5432}:5432
+        restart: ${DOCKER_RESTART_POLICY:-unless-stopped}
+    pgadmin:
+        image: dpage/pgadmin4
+        env_file:
+            - ./.env
+        environment:
+            - PGADMIN_DEFAULT_EMAIL=${PGADMIN_DEFAULT_EMAIL}
+            - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_DEFAULT_PASSWORD}
+        ports:
+            - "${PGADMIN_FWD_PORT:-64503}:80"
+        volumes:
+            - pgadmin_data:/var/lib/pgadmin
+        links:
+            - "postgres:localhost"
+        depends_on:
+            - postgres
+        restart: ${DOCKER_RESTART_POLICY:-unless-stopped}
+    mongodb:
+        image: mongo
+        env_file:
+            - ./.env
+        environment:
+            - MONGO_INITDB_ROOT_USERNAME=${MONGODB_USERNAME:-mongo}
+            - MONGO_INITDB_ROOT_PASSWORD=${MONGODB_PASSWORD}
+        ports:
+            - "${MONGODB_FWD_PORT:-27017}:27017"
+        volumes:
+            - mongo_data:/data/db
+        restart: ${DOCKER_RESTART_POLICY:-unless-stopped}
+        stop_grace_period: ${DOCKER_STOP_GRACE_PERIOD:-3s}
+    mongo-express:
+        image: mongo-express
+        restart: ${DOCKER_RESTART_POLICY:-unless-stopped}
+        env_file:
+            - ./.env
+        ports:
+            - ${MONGOEXPRESS_FWD_PORT:-8081}:8081
+        environment:
+            - ME_CONFIG_OPTIONS_EDITORTHEME=ambiance
+            - ME_CONFIG_BASICAUTH_USERNAME=${MONGOEXPRESS_ADMIN_USERNAME:-admin}
+            - ME_CONFIG_BASICAUTH_PASSWORD=${MONGOEXPRESS_ADMIN_PASSWORD}
+            - ME_CONFIG_MONGODB_SERVER=mongodb
+            - ME_CONFIG_MONGODB_ADMINUSERNAME=${MONGODB_USERNAME:-mongo}
+            - ME_CONFIG_MONGODB_ADMINPASSWORD=${MONGODB_PASSWORD}
+        depends_on:
+            - mongodb
+    redis:
+        image: redis:alpine
+        ports:
+            - "${REDIS_FWD_PORT:-6379}:6379"
+        env_file:
+            - ./.env
+        environment:
+            - REDIS_REPLICATION_MODE=master
+        restart: ${DOCKER_RESTART_POLICY:-unless-stopped}
+        stop_grace_period: ${DOCKER_STOP_GRACE_PERIOD:-3s}
+volumes:
+    postgres_data: {}
+    pgadmin_data: {}
+    mongo_data: {}
