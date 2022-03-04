@@ -22,11 +22,13 @@ name | description | docker image | default endpoint
 
 Requires Docker Engine 19.03.0+
 
-Install Docker: https://docs.docker.com/engine/install/
+Install Docker: <https://docs.docker.com/engine/install/>
+
+> Make sure you are not using docker-compose V2.
 
 ### .env configuration file
 
-Edit the `.env` file with the environment variables to configure the containers.
+Edit the `.env.example` file with the environment variables to configure the containers and save it as a `.env` file.
 
 It is recommended to set the following environment variables in the file:
 
@@ -51,7 +53,8 @@ Name | Description | Default value | Required
 ## Run
 
 Start the containers by running:
-```
+
+```sh
 docker-compose up -d --build
 ```
 
@@ -62,6 +65,7 @@ Stop the containers using `docker-compose down`
 Or if you want to delete all data associated with the containers use `docker-compose down -v`
 
 To specify the docker-compose file to use just use the `-f` argument like:
-```
+
+```sh
 docker-compose -f mongo_docker-compose.yml up -d --build
 ```
